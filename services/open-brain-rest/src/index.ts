@@ -144,11 +144,14 @@ function applyThoughtFilters(
   if (typeof filters.quality_score_max === "number") {
     nextQuery = nextQuery.lte("metadata->>quality_score", String(filters.quality_score_max));
   }
-  if (filters.exclude_restricted !== false) {
-    nextQuery = nextQuery.not("metadata->>sensitivity_tier", "eq", "restricted");
-  }
 
   return nextQuery;
+}
+
+function isVisibleThought(row: { metadata: Metadata | null }, excludeRestricted: boolean) {
+  if (!excludeRestricted) return true;
+  const tier = String(row.metadata?.sensitivity_tier ?? "standard");
+  return tier !== "restricted";
 }
 
 app.get("/health", async () => ({ status: "ok" }));
@@ -178,12 +181,16 @@ app.get("/thoughts", async (request, reply) => {
 
   dbQuery = applyThoughtFilters(dbQuery, params);
 
-  const { data, count, error } = await dbQuery;
+  const { data, error } = await dbQuery;
   if (error) return reply.code(500).send({ error: error.message });
 
+  const visibleRows = (data ?? []).filter((row) =>
+    isVisibleThought(row as { metadata: Metadata | null }, params.exclude_restricted)
+  );
+
   return {
-    data: (data ?? []).map(normalizeThought),
-    total: count ?? 0,
+    data: visibleRows.map(normalizeThought),
+    total: visibleRows.length,
     page: params.page,
     per_page: params.per_page,
   };
@@ -204,12 +211,11 @@ app.get("/thought/:id", async (request, reply) => {
     .eq("id", params.id)
     .single();
 
-  if (query.exclude_restricted !== false) {
-    dbQuery = dbQuery.not("metadata->>sensitivity_tier", "eq", "restricted");
-  }
-
   const { data, error } = await dbQuery;
   if (error || !data) return reply.code(404).send({ error: "Thought not found" });
+  if (!isVisibleThought(data as { metadata: Metadata | null }, query.exclude_restricted)) {
+    return reply.code(403).send({ error: "Thought is restricted" });
+  }
 
   return normalizeThought(data);
 });
@@ -291,17 +297,17 @@ app.post("/search", async (request, reply) => {
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (body.exclude_restricted) {
-      query = query.not("metadata->>sensitivity_tier", "eq", "restricted");
-    }
-
     const { data, count, error } = await query;
     if (error) return reply.code(500).send({ error: error.message });
 
-    const total = count ?? 0;
+    const visibleRows = (data ?? []).filter((row) =>
+      isVisibleThought(row as { metadata: Metadata | null }, body.exclude_restricted)
+    );
+
+    const total = visibleRows.length;
     return {
-      results: (data ?? []).map(normalizeThought),
-      count: data?.length ?? 0,
+      results: visibleRows.map(normalizeThought),
+      count: visibleRows.length,
       total,
       page,
       per_page: pageSize,
@@ -322,9 +328,7 @@ app.post("/search", async (request, reply) => {
   if (rpc.error) return reply.code(500).send({ error: rpc.error.message });
 
   let rows = (rpc.data ?? []) as SearchThought[];
-  if (body.exclude_restricted) {
-    rows = rows.filter((row) => String(row.metadata?.sensitivity_tier ?? "standard") !== "restricted");
-  }
+  rows = rows.filter((row) => isVisibleThought(row, body.exclude_restricted));
 
   const total = rows.length;
   const start = (page - 1) * pageSize;
@@ -352,10 +356,6 @@ app.get("/stats", async (request, reply) => {
     .from("thoughts")
     .select("metadata, created_at");
 
-  if (query.exclude_restricted !== false) {
-    dbQuery = dbQuery.not("metadata->>sensitivity_tier", "eq", "restricted");
-  }
-
   if (query.days) {
     const since = new Date();
     since.setDate(since.getDate() - query.days);
@@ -365,7 +365,9 @@ app.get("/stats", async (request, reply) => {
   const { data, error } = await dbQuery;
   if (error) return reply.code(500).send({ error: error.message });
 
-  const rows = data ?? [];
+  const rows = (data ?? []).filter((row) =>
+    isVisibleThought(row as { metadata: Metadata | null }, query.exclude_restricted)
+  );
   const types: Record<string, number> = {};
   const topicCounts: Record<string, number> = {};
 
