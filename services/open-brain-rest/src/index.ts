@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -48,6 +48,10 @@ app.addHook("onRequest", async (request, reply) => {
 
 function normalizeThought(row: RawThought | SearchThought) {
   const metadata = row.metadata ?? {};
+  const similarity =
+    "similarity" in row && typeof row.similarity === "number"
+      ? row.similarity
+      : undefined;
   return {
     id: row.id,
     uuid: row.id,
@@ -60,7 +64,7 @@ function normalizeThought(row: RawThought | SearchThought) {
     metadata,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    ...(typeof row.similarity === "number" ? { similarity: row.similarity } : {}),
+    ...(typeof similarity === "number" ? { similarity } : {}),
   };
 }
 
@@ -121,7 +125,7 @@ Only extract what's explicitly there.`,
 }
 
 function applyThoughtFilters(
-  query: ReturnType<SupabaseClient["from"]>,
+  query: any,
   filters: {
     type?: string;
     source_type?: string;
@@ -130,7 +134,7 @@ function applyThoughtFilters(
     exclude_restricted?: boolean;
   }
 ) {
-  let nextQuery = query;
+  let nextQuery: any = query;
 
   if (filters.type) nextQuery = nextQuery.contains("metadata", { type: filters.type });
   if (filters.source_type) nextQuery = nextQuery.contains("metadata", { source: filters.source_type });
@@ -166,7 +170,7 @@ app.get("/thoughts", async (request, reply) => {
   const from = (params.page - 1) * params.per_page;
   const to = from + params.per_page - 1;
 
-  let dbQuery = supabase
+  let dbQuery: any = supabase
     .from("thoughts")
     .select("id, content, metadata, created_at, updated_at", { count: "exact" })
     .order(params.sort, { ascending: params.order === "asc" })
@@ -194,7 +198,7 @@ app.get("/thought/:id", async (request, reply) => {
     exclude_restricted: z.coerce.boolean().default(true),
   }).parse(request.query);
 
-  let dbQuery = supabase
+  let dbQuery: any = supabase
     .from("thoughts")
     .select("id, content, metadata, created_at, updated_at")
     .eq("id", params.id)
@@ -280,7 +284,7 @@ app.post("/search", async (request, reply) => {
   if (body.mode === "text") {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-    let query = supabase
+    let query: any = supabase
       .from("thoughts")
       .select("id, content, metadata, created_at, updated_at", { count: "exact" })
       .ilike("content", `%${body.query}%`)
@@ -344,7 +348,7 @@ app.get("/stats", async (request, reply) => {
     exclude_restricted: z.coerce.boolean().default(true),
   }).parse(request.query);
 
-  let dbQuery = supabase
+  let dbQuery: any = supabase
     .from("thoughts")
     .select("metadata, created_at");
 
@@ -400,7 +404,7 @@ app.post("/capture", async (request, reply) => {
     extractMetadata(body.content),
   ]);
 
-  const metadata = {
+  const metadata: Metadata = {
     ...extracted,
     source: "rest",
   };
