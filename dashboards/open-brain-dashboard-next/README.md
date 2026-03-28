@@ -10,7 +10,7 @@
 
 </div>
 
-A full-featured web dashboard for your Open Brain second brain. Browse, search, capture, and manage thoughts through a modern dark-themed UI. Built with Next.js, React, TypeScript, and Tailwind CSS. Deploy to Vercel or any Node.js host.
+A full-featured web dashboard for your Open Brain second brain. Browse, search, capture, and manage thoughts through a modern dark-themed UI. Built with Next.js, React, TypeScript, and Tailwind CSS. Deploy to Railway, Vercel, or any Node.js host.
 
 ## What It Does
 
@@ -31,13 +31,13 @@ Provides 8 pages for managing your thoughts:
 
 - A working Open Brain setup with the **REST API gateway** (`open-brain-rest`) deployed
 - **Node.js 18+** installed
-- A **Vercel account** (free tier works) or any Node.js hosting
+- A **Railway** project, **Vercel account**, or any Node.js hosting
 
 ### Credential Tracker
 
 | Credential | Where to get it | Where it goes |
 |------------|----------------|---------------|
-| `NEXT_PUBLIC_API_URL` | Your Supabase project URL + `/functions/v1/open-brain-rest` | `.env` or hosting env vars |
+| `NEXT_PUBLIC_API_URL` | Your deployed REST API URL, for example Railway | `.env` or hosting env vars |
 | `SESSION_SECRET` | Generate: `openssl rand -hex 32` | `.env` or hosting env vars |
 | `RESTRICTED_PASSPHRASE_HASH` | Optional. Generate: `echo -n "passphrase" \| shasum -a 256` | `.env` or hosting env vars |
 
@@ -67,7 +67,7 @@ cp .env.example .env
 Edit `.env` and set your values:
 
 ```
-NEXT_PUBLIC_API_URL=https://YOUR-PROJECT-REF.supabase.co/functions/v1/open-brain-rest
+NEXT_PUBLIC_API_URL=https://your-open-brain-rest.up.railway.app
 SESSION_SECRET=your-32-char-secret-here
 ```
 
@@ -81,7 +81,21 @@ Open [http://localhost:3000](http://localhost:3000). You should see the login pa
 
 Enter your Open Brain API key (the `MCP_ACCESS_KEY` from your Supabase Edge Function secrets). After login, the dashboard loads with your stats and recent thoughts.
 
-### Step 5: Deploy to Vercel (optional)
+### Step 5: Deploy to Railway or Vercel (optional)
+
+For Railway:
+
+1. Create a new web service from this folder
+2. Set the root directory to `dashboards/open-brain-dashboard-next`
+3. Add `NEXT_PUBLIC_API_URL` and `SESSION_SECRET`
+4. Use:
+
+```text
+Build command: npm install && npm run build
+Start command: npm run start
+```
+
+For Vercel:
 
 ```bash
 npx vercel --prod
@@ -124,6 +138,10 @@ The dashboard calls these endpoints on your Open Brain REST API:
 
 > [!NOTE]
 > If your Open Brain instance doesn't have all these endpoints (e.g., no smart-ingest or duplicates), those pages will show errors but the core pages (dashboard, browse, search, detail) will still work.
+
+## UUID Note
+
+This dashboard originally assumed numeric thought IDs. If your `thoughts` table uses UUID primary keys, patch the dashboard to treat thought IDs as strings throughout. The local copy in this repo has started that UUID migration so it can pair with a UUID-first REST service.
 
 ## Optional: Restricted Content
 

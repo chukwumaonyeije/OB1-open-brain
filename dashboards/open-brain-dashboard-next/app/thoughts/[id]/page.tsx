@@ -26,8 +26,7 @@ export default async function ThoughtDetailPage({
   const session = await getSession();
   const excludeRestricted = !session.restrictedUnlocked;
   const { id } = await params;
-  const thoughtId = parseInt(id, 10);
-  if (isNaN(thoughtId)) notFound();
+  const thoughtId = id;
 
   let thought;
   try {
@@ -87,7 +86,7 @@ export default async function ThoughtDetailPage({
           <div className="flex items-center gap-3 mb-2 flex-wrap">
             <TypeBadge type={thought.type} />
             <span className="text-xs text-text-muted font-mono">
-              ID: {thought.id}
+            ID: {thought.id}
             </span>
             {thought.uuid && (
               <span className="text-xs text-text-muted font-mono">
