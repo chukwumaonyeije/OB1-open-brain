@@ -218,7 +218,7 @@ app.get("/thoughts", async (request, reply) => {
   const { data, error } = await dbQuery;
   if (error) return reply.code(500).send({ error: error.message });
 
-  const visibleRows = (data ?? []).filter((row) =>
+  const visibleRows = (data ?? []).filter((row: { metadata: Metadata | null }) =>
     isVisibleThought(row as { metadata: Metadata | null }, params.exclude_restricted)
   );
 
@@ -334,7 +334,7 @@ app.post("/search", async (request, reply) => {
     const { data, count, error } = await query;
     if (error) return reply.code(500).send({ error: error.message });
 
-    const visibleRows = (data ?? []).filter((row) =>
+    const visibleRows = (data ?? []).filter((row: { metadata: Metadata | null }) =>
       isVisibleThought(row as { metadata: Metadata | null }, body.exclude_restricted)
     );
 
@@ -399,7 +399,7 @@ app.get("/stats", async (request, reply) => {
   const { data, error } = await dbQuery;
   if (error) return reply.code(500).send({ error: error.message });
 
-  const rows = (data ?? []).filter((row) =>
+  const rows = (data ?? []).filter((row: { metadata: Metadata | null }) =>
     isVisibleThought(row as { metadata: Metadata | null }, query.exclude_restricted)
   );
   const types: Record<string, number> = {};
