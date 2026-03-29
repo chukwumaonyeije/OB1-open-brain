@@ -22,7 +22,7 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-56 bg-bg-surface border-r border-border flex flex-col z-40">
       <div className="px-5 py-6 border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" prefetch={false} className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-violet flex items-center justify-center">
             <span className="text-white text-sm font-bold">OB</span>
           </div>
@@ -40,6 +40,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
                   ? "bg-violet-surface text-violet border border-violet/20"

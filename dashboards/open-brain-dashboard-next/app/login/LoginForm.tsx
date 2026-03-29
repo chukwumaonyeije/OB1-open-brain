@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function LoginForm() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -29,8 +27,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      window.location.assign("/");
     } catch {
       setError("Could not sign in. Please try again.");
     } finally {

@@ -59,7 +59,7 @@ export function ThoughtCard({
   );
 
   if (showLink) {
-    return <Link href={`/thoughts/${thought.id}`}>{inner}</Link>;
+    return <Link href={`/thoughts/${thought.id}`} prefetch={false}>{inner}</Link>;
   }
   return inner;
 }
