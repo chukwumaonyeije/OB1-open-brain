@@ -156,6 +156,40 @@ function isVisibleThought(row: { metadata: Metadata | null }, excludeRestricted:
 
 app.get("/health", async () => ({ status: "ok" }));
 
+app.get("/debug/db", async (_request, reply) => {
+  try {
+    const jsResult = await supabase
+      .from("thoughts")
+      .select("id, created_at")
+      .limit(3);
+
+    const restResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/thoughts?select=id,created_at&limit=3`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+
+    const restText = await restResponse.text();
+
+    return {
+      project_url: env.SUPABASE_URL,
+      js_error: jsResult.error?.message ?? null,
+      js_count: jsResult.data?.length ?? 0,
+      js_rows: jsResult.data ?? [],
+      rest_status: restResponse.status,
+      rest_body: restText,
+    };
+  } catch (error) {
+    return reply.code(500).send({
+      error: error instanceof Error ? error.message : "Unknown debug failure",
+    });
+  }
+});
+
 app.get("/thoughts", async (request, reply) => {
   const querySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
