@@ -2,35 +2,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
 
-async function loginAction(formData: FormData) {
-  "use server";
-
-  const apiKey = formData.get("apiKey") as string;
-  if (!apiKey?.trim()) {
-    return { error: "API key is required" };
-  }
-
-  // Validate key against health endpoint
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  try {
-    const res = await fetch(`${apiUrl}/health`, {
-      headers: { "x-brain-key": apiKey },
-    });
-    if (!res.ok) {
-      return { error: "Invalid API key or service unavailable" };
-    }
-  } catch {
-    return { error: "Could not reach API. Check your connection." };
-  }
-
-  const session = await getSession();
-  session.apiKey = apiKey;
-  session.loggedIn = true;
-  await session.save();
-
-  redirect("/");
-}
-
 export default async function LoginPage() {
   const session = await getSession();
   if (session.loggedIn && session.apiKey) {
@@ -52,7 +23,7 @@ export default async function LoginPage() {
           </p>
         </div>
 
-        <LoginForm action={loginAction} />
+        <LoginForm />
       </div>
     </div>
   );

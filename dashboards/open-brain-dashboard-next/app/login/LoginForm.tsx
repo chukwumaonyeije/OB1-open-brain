@@ -1,21 +1,45 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-export function LoginForm({
-  action,
-}: {
-  action: (formData: FormData) => Promise<{ error: string } | undefined>;
-}) {
-  const [state, formAction, pending] = useActionState(
-    async (_prev: { error: string } | undefined, formData: FormData) => {
-      return await action(formData);
-    },
-    undefined
-  );
+export function LoginForm() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setError(null);
+
+    const formData = new FormData(event.currentTarget);
+    const apiKey = String(formData.get("apiKey") ?? "").trim();
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Sign in failed");
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Could not sign in. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <label
           htmlFor="apiKey"
@@ -34,8 +58,8 @@ export function LoginForm({
         />
       </div>
 
-      {state?.error && (
-        <p className="text-danger text-sm">{state.error}</p>
+      {error && (
+        <p className="text-danger text-sm">{error}</p>
       )}
 
       <button
